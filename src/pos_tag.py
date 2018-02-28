@@ -12,6 +12,7 @@ import csv
 if __name__ == '__main__':
     # initialize variables
     words = []
+    words_dist = []
     tags = []
     train_sents = []
     test_sents = []
@@ -55,9 +56,22 @@ if __name__ == '__main__':
         for key_col in transition_prob[key_row].keys():
             transition_prob[key_row][key_col] = 1.0 * transition_count[key_col][key_row] / tags_dist[key_col]
     # write the table to csv
-    with open("test_output.csv", "wb") as f:
+    with open("transition_output.csv", "wb") as f:
         w = csv.writer( f )
         tag_names = transition_prob.values()[0].keys()
         w.writerow([""] + [key for key in transition_prob.values()[0].keys()])
         for key in transition_prob.keys():
             w.writerow([key] + [transition_prob[key][tag_name] for tag_name in tag_names])
+            
+    # emission count table
+    words_dist = FreqDist(words)
+    emission_count = dict((tag,0) for tag in tags_dist)
+    for key in emission_count.keys():
+        emission_count[key] = dict((word,0) for word in words_dist)
+    # write the table to csv
+    with open("emission_output.csv", "wb") as f:
+        w = csv.writer( f )
+        tag_names = emission_count.values()[0].keys()
+        w.writerow([""] + [key for key in emission_count.values()[0].keys()])
+        for key in emission_count.keys():
+            w.writerow([key] + [emission_count[key][tag_name] for tag_name in tag_names])
