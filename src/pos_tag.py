@@ -3,9 +3,8 @@ Created on 28 Feb 2018
 
 @author: it41
 '''
-
-def viberti():
-    pass
+from hmm import HMM
 
 if __name__ == '__main__':
-    viberti()
+    hmm = HMM()
+    hmm.viterbi()
