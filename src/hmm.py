@@ -4,7 +4,7 @@ Created on Mar 2, 2018
 @author: User
 '''
 import nltk
-from nltk.corpus import brown, conll2000, conll2002, alpino
+from nltk.corpus import brown, conll2000, conll2002
 from nltk.util import ngrams
 from nltk import FreqDist
 
@@ -41,7 +41,11 @@ class HMM():
         num_words = 0
         accuracy_tag = {}
         
-        for tag in self.tags_dist.keys():
+        test_tags = []
+        for sent in test_tagged_sents:
+            test_tags += [t for (_,t) in sent]
+        test_tags_dist = FreqDist(test_tags) 
+        for tag in test_tags_dist.keys():
             accuracy_tag[tag] = {"right":0, "all":0}
         
         for test_sent in self.test_sents:
@@ -109,11 +113,13 @@ class HMM():
               (correct_tags, num_words, float(correct_tags*100.0/num_words)))
     
     def get_corpus(self):
-        corpus = brown
+#         corpus = conll2000
+#         corpus = brown
+        corpus = conll2002
         return corpus
     
     def get_sentences(self):
-        tagged_sents = self.corpus.tagged_sents(tagset="universal")
+        tagged_sents = self.corpus.tagged_sents()
         sents = self.corpus.sents()
         return tagged_sents, sents 
             
