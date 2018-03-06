@@ -4,21 +4,25 @@ Created on Mar 2, 2018
 @author: User
 '''
 import nltk
-from nltk.corpus import brown
+from nltk.corpus import brown, conll2000, conll2002, alpino
 from nltk.util import ngrams
 from nltk import FreqDist
 
 class HMM():
     def __init__(self):
+        self.corpus = self.get_corpus()
+        self.tagged_sents, self.sents = self.get_sentences()
+        # 90/10 train/test split
+#         self.train_size = int(len(self.tagged_sents) * 0.9)
+#         self.test_size = int(len(self.tagged_sents) * 0.1)
+        self.train_size = 10000
+        self.test_size = 200
         print("creating list of words and tags")
         self.train_sents, self.test_sents = self.train_test_split()
-#         self.brown_tags_words = self.get_tags_words()
         self.words, self.tags = self.get_words_and_tags()
 #         print(self.brown_tags_words[:10])
         # tags and words distribution
         print("calculating words and tags distribution")
-        self.tags_dist = FreqDist(self.tags)            
-        self.words_dist = FreqDist(self.words)
         self.change_unknown_words()
         self.tags_dist = FreqDist(self.tags)            
         self.words_dist = FreqDist(self.words)
@@ -28,11 +32,10 @@ class HMM():
         print("creating observation likelihood table")
         self.emission_prob = self.create_emission_table()
         print("hmm completed")
-        self.sentence = self.get_test_sentence()
         
     def viterbi(self):
-        print("testing hmm")
-        test_tagged_sents = brown.tagged_sents(tagset='universal')[self.train_size:self.train_size+self.test_size]
+        print("testing pos tagger")
+        test_tagged_sents = self.tagged_sents[self.train_size:self.train_size+self.test_size]
         num_sent = 0
         correct_tags = 0
         num_words = 0
@@ -104,21 +107,26 @@ class HMM():
                     accuracy_tag[actual_tags[i]]["all"] += 1
         print("overall accuracy, correct: %d  from: %d percentage: %f \n" % \
               (correct_tags, num_words, float(correct_tags*100.0/num_words)))
+    
+    def get_corpus(self):
+        corpus = brown
+        return corpus
+    
+    def get_sentences(self):
+        tagged_sents = self.corpus.tagged_sents(tagset="universal")
+        sents = self.corpus.sents()
+        return tagged_sents, sents 
             
-    def change_unknown_words(self):
+    def change_unknown_words(self):           
+        words_dist = FreqDist(self.words)
         for index, w in enumerate(self.words):
-            if self.words_dist[w] == 1:
+            if words_dist[w] == 1:
                 self.words[index] = "UNK"
         
     def train_test_split(self):
-        brown_tagged_sents = brown.tagged_sents(tagset="universal")
-        brown_sents = brown.sents()
-        # 90/10 train/test split
-        self.train_size = int(len(brown_tagged_sents) * 0.9)
-        self.test_size = 200
 #         size = 1000
-        train_sents = brown_tagged_sents[:self.train_size]
-        test_sents = brown_sents[self.train_size:self.train_size+self.test_size]
+        train_sents = self.tagged_sents[:self.train_size]
+        test_sents = self.sents[self.train_size:self.train_size+self.test_size]
         return train_sents, test_sents
     
     def get_words_and_tags(self):
@@ -131,24 +139,6 @@ class HMM():
             words += start + [w for (w,_) in sent] + end
             tags += start + [t for (_,t) in sent] + end
         return words, tags
-    
-    def get_tags_words(self):
-        brown_tags_words = []
-        for sent in brown.tagged_sents(tagset="universal"):
-            brown_tags_words.append(("<s>", "<s>"))
-            # then all the tag/word pairs for the word/tag pairs in the sentence.
-            # shorten tags to 2 characters each
-            brown_tags_words.extend([(tag, word) for (word, tag) in sent])
-            # then END/END
-            brown_tags_words.append( ("</s>", "</s>") )
-        return brown_tags_words
-    
-    def get_test_sentence(self):
-        # create list of words and tags
-        sentence = []
-        for sent in self.test_sents:
-            sentence += [w for w in sent]
-        return sentence
     
     def create_transition_table(self):
         # dictionary for tag transition count table
