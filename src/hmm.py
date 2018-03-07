@@ -1,16 +1,13 @@
 '''
 Created on Mar 2, 2018
-
-@author: User
 '''
 import nltk
-from nltk.corpus import brown, conll2000, conll2002
 from nltk.util import ngrams
 from nltk import FreqDist
 
 class HMM():
-    def __init__(self):
-        self.corpus = self.get_corpus()
+    def __init__(self, corpus, tagset="default"):
+        self.corpus = corpus
         self.tagged_sents, self.sents = self.get_sentences()
         # 90/10 train/test split
 #         self.train_size = int(len(self.tagged_sents) * 0.9)
@@ -112,12 +109,6 @@ class HMM():
         print("overall accuracy, correct: %d  from: %d percentage: %f \n" % \
               (correct_tags, num_words, float(correct_tags*100.0/num_words)))
     
-    def get_corpus(self):
-#         corpus = conll2000
-#         corpus = brown
-        corpus = conll2002
-        return corpus
-    
     def get_sentences(self):
         tagged_sents = self.corpus.tagged_sents()
         sents = self.corpus.sents()
@@ -130,7 +121,6 @@ class HMM():
                 self.words[index] = "UNK"
         
     def train_test_split(self):
-#         size = 1000
         train_sents = self.tagged_sents[:self.train_size]
         test_sents = self.sents[self.train_size:self.train_size+self.test_size]
         return train_sents, test_sents
@@ -192,5 +182,4 @@ class HMM():
         return emission_prob
 
 if __name__ == '__main__':
-    hmm = HMM()
-    hmm.viterbi()
+    pass
