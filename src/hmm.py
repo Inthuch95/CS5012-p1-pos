@@ -1,38 +1,48 @@
 '''
 Created on Mar 2, 2018
 '''
-import nltk
 from nltk.util import ngrams
 from nltk import FreqDist
+from sklearn.linear_model import LinearRegression
+import numpy as np
+from math import log10
+from sklearn.metrics.regression import mean_squared_error
 
 class HMM():
-    def __init__(self, corpus, tagset="default"):
+    def __init__(self, corpus, tagset="", smoothing="-g"):
         self.corpus = corpus
-        self.tagged_sents, self.sents = self.get_sentences()
+        self.tagged_sents, self.sents = self.get_sentences(tagset)
         # 90/10 train/test split
 #         self.train_size = int(len(self.tagged_sents) * 0.9)
+#         print("training with " + str(self.train_size) + " sentences")
 #         self.test_size = int(len(self.tagged_sents) * 0.1)
-        self.train_size = 10000
-        self.test_size = 200
+        self.train_size = 5000
+        self.test_size = 500
         print("creating list of words and tags")
         self.train_sents, self.test_sents = self.train_test_split()
         self.words, self.tags = self.get_words_and_tags()
 #         print(self.brown_tags_words[:10])
         # tags and words distribution
-        print("calculating words and tags distribution")
+        print("replacing unknown words with 'UNK'")
         self.change_unknown_words()
         self.tags_dist = FreqDist(self.tags)            
         self.words_dist = FreqDist(self.words)
         # create tables
         print("creating transition table")
-        self.transition_prob = self.create_transition_table()
+        if smoothing == "-l":
+            print("applying laplace smoothing")
+            self.transition_prob = self.create_transition_table()
+        else:
+            print("applying good-turing smoothing")
+            self.transition_prob = self.good_turing_transition_table()
         print("creating observation likelihood table")
         self.emission_prob = self.create_emission_table()
-        print("hmm completed")
+        print("hmm training completed")
         
     def viterbi(self):
         print("testing pos tagger")
         test_tagged_sents = self.tagged_sents[self.train_size:self.train_size+self.test_size]
+        print("testing with " + str(len(test_tagged_sents)) + " sentences")
         num_sent = 0
         correct_tags = 0
         num_words = 0
@@ -40,12 +50,14 @@ class HMM():
         
         test_tags = []
         for sent in test_tagged_sents:
-            test_tags += [t for (_,t) in sent]
+            test_tags += [t for (_,t) in sent] 
         test_tags_dist = FreqDist(test_tags) 
         for tag in test_tags_dist.keys():
             accuracy_tag[tag] = {"right":0, "all":0}
         
         for test_sent in self.test_sents:
+            if num_sent % 10 == 0:
+                print("sentence processed: " + str(num_sent))
             actual_tags =  ["<s>"] + [t for (_,t) in test_tagged_sents[num_sent]] + ["</s>"]
             for i in range(len(test_sent)):
                 if test_sent[i] not in self.words:
@@ -87,6 +99,7 @@ class HMM():
                                     backpointer["value"] += [max_transition_p]
                                 break
                 actual_prev_pos = backpointer["tag"][backpointer["value"].index(max(backpointer["value"]))]
+               
                 predictions[t] = actual_prev_pos
             transition_p = [viterbi_mat[prev_state][test_sent[-1]] * \
                             self.transition_prob["<s>"][prev_state] for prev_state in viterbi_mat.keys()]
@@ -106,11 +119,13 @@ class HMM():
                         correct_tags += 1
                     num_words += 1
                     accuracy_tag[actual_tags[i]]["all"] += 1
+        for key in accuracy_tag.keys():
+            print(key, accuracy_tag[key])
         print("overall accuracy, correct: %d  from: %d percentage: %f \n" % \
               (correct_tags, num_words, float(correct_tags*100.0/num_words)))
     
-    def get_sentences(self):
-        tagged_sents = self.corpus.tagged_sents()
+    def get_sentences(self, selected_tagset):
+        tagged_sents = self.corpus.tagged_sents(tagset=selected_tagset)
         sents = self.corpus.sents()
         return tagged_sents, sents 
             
@@ -146,6 +161,7 @@ class HMM():
             row = i[0]
             col = i[1]
             transition_count[row][col] += 1
+        print(transition_count)
         # dictionary for tag transition probability table
         transition_prob = dict((tag,0) for tag in self.tags_dist)
         for key in transition_prob.keys():
@@ -153,6 +169,54 @@ class HMM():
         for row in transition_prob.keys():
             for col in transition_prob[row].keys():
                 transition_prob[row][col] = (1.0 * transition_count[col][row] + 1) / (self.tags_dist[col] + len(self.tags))
+        print(transition_prob)
+        return transition_prob
+    
+    def get_nc(self, c, linreg):
+        x = [log10(c)]
+        x = np.c_[np.ones_like(x), x]
+        y_hat = linreg.predict(x)
+        return pow(10, y_hat[0])
+    
+    def good_turing_transition_table(self):
+        bigrams = list(ngrams(self.tags, 2))
+        # dictionary for tag transition count table
+        transition_count = dict((tag,0) for tag in self.tags_dist)
+        for key in transition_count.keys():
+            transition_count[key] = dict((tag,0) for tag in self.tags_dist) 
+        for i in bigrams:
+            row = i[0]
+            col = i[1]
+            transition_count[row][col] += 1
+        print(transition_count)
+        bigrams_dist = FreqDist(bigrams)
+        Nc = {}
+        N = len(list(bigrams))
+        for key in bigrams_dist.keys():
+            if bigrams_dist[key] not in Nc.keys():
+                Nc[bigrams_dist[key]] = 1
+            else:
+                Nc[bigrams_dist[key]] += 1
+        print(Nc)
+        x = [np.real(log10(count)) for count in Nc.keys()]
+        x = np.c_[np.ones_like(x), x]
+        y = [log10(Nc[key]) for key in Nc.keys()]
+        linreg = LinearRegression()
+        linreg.fit(x, y)
+        y_hat = linreg.predict(x)
+        print("MSE = ", mean_squared_error(y, y_hat))
+        
+        transition_prob = dict((tag,0) for tag in self.tags_dist)
+        for key in transition_prob.keys():
+            transition_prob[key] = dict((tag,0) for tag in self.tags_dist) 
+        for row in transition_prob.keys():
+            for col in transition_prob[row].keys():
+                if transition_count[row][col] == 0:
+                    transition_prob[row][col] = (self.get_nc(1, linreg) * 1.0) / N
+                else:
+                    c_star = (transition_count[row][col] + 1) * \
+                    (self.get_nc(transition_count[row][col] + 1, linreg)/self.get_nc(transition_count[row][col], linreg))
+                    transition_prob[row][col] = c_star / N 
         return transition_prob
     
     def create_word_tag_pairs(self):

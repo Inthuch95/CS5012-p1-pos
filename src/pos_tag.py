@@ -2,22 +2,37 @@
 Created on 28 Feb 2018
 '''
 from hmm import HMM
-from nltk.corpus import brown, conll2000, conll2002
+from nltk.corpus import brown, conll2000, alpino, treebank
+import sys
 
 CONLL2000_UNIVERSAL = 1
 CONLL2000 = 2
-CONLL2002 = 3
+TREEBANK = 3
 BROWN_UNIVERSAL = 4
-BRWON = 5
+ALPINO = 5
 
-def get_corpus():
-#     corpus = conll2000
-#     corpus = brown
-    corpus = conll2002
-    tagset = "default"
+def get_corpus(selected_corpus):
+    tagset = ""
+    if selected_corpus == CONLL2000_UNIVERSAL:
+        corpus = conll2000
+        tagset = "universal"
+    elif selected_corpus == CONLL2000:
+        corpus = conll2000
+    elif selected_corpus == TREEBANK:
+        corpus = treebank
+    elif selected_corpus == BROWN_UNIVERSAL:
+        corpus = brown
+        tagset = "universal"
+    elif selected_corpus == ALPINO:
+        corpus = alpino
+    else:
+        print("corpus unavailable")
+        quit() 
     return corpus, tagset
 
 if __name__ == '__main__':
-    corpus, tagset = get_corpus()
-    hmm = HMM(corpus, tagset)
+    selected_corpus = int(sys.argv[1])
+    smoothing = sys.argv[2]
+    corpus, tagset = get_corpus(selected_corpus=4)
+    hmm = HMM(corpus, tagset, smoothing="-g")
     hmm.viterbi()
