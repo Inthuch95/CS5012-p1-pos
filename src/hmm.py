@@ -7,6 +7,7 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 from math import log10
 from sklearn.metrics.regression import mean_squared_error
+from collections import defaultdict
 
 class HMM():
     def __init__(self, corpus, tagset="", smoothing="-g"):
@@ -38,6 +39,27 @@ class HMM():
         print("creating observation likelihood table")
         self.emission_prob = self.create_emission_table()
         print("hmm training completed")
+    
+    def viterbi_test(self):
+        allPossibleTags = self.transition_prob.keys()
+        print(allPossibleTags)
+        for sent in self.test_sents:
+            probability = defaultdict(dict)
+            backpointer = defaultdict(dict)
+            
+            words = sent.split()
+            
+            T = len(words)
+            ##### Start of Viterbi #####
+            
+            ## Initialization at t=1 ##
+            word = words[0]
+            ##### If the word is seen #####
+            if word in self.emission_prob["<s>"].keys():
+                for eachTag in self.emission_prob.keys():
+                    probability[eachTag][0] = transitionProb['S0'][eachTag] * emissionProb[word][eachTag]
+                    backpointer[eachTag][0] = 'S0'
+            ##### If the word is unseen #####
         
     def viterbi(self):
         print("testing pos tagger")
@@ -161,7 +183,6 @@ class HMM():
             row = i[0]
             col = i[1]
             transition_count[row][col] += 1
-        print(transition_count)
         # dictionary for tag transition probability table
         transition_prob = dict((tag,0) for tag in self.tags_dist)
         for key in transition_prob.keys():
@@ -169,7 +190,6 @@ class HMM():
         for row in transition_prob.keys():
             for col in transition_prob[row].keys():
                 transition_prob[row][col] = (1.0 * transition_count[col][row] + 1) / (self.tags_dist[col] + len(self.tags))
-        print(transition_prob)
         return transition_prob
     
     def get_nc(self, c, linreg):
@@ -188,7 +208,6 @@ class HMM():
             row = i[0]
             col = i[1]
             transition_count[row][col] += 1
-        print(transition_count)
         bigrams_dist = FreqDist(bigrams)
         Nc = {}
         N = len(list(bigrams))
@@ -197,7 +216,6 @@ class HMM():
                 Nc[bigrams_dist[key]] = 1
             else:
                 Nc[bigrams_dist[key]] += 1
-        print(Nc)
         x = [np.real(log10(count)) for count in Nc.keys()]
         x = np.c_[np.ones_like(x), x]
         y = [log10(Nc[key]) for key in Nc.keys()]

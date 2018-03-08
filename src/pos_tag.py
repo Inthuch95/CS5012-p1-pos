@@ -35,4 +35,4 @@ if __name__ == '__main__':
     smoothing = sys.argv[2]
     corpus, tagset = get_corpus(selected_corpus=4)
     hmm = HMM(corpus, tagset, smoothing="-g")
-    hmm.viterbi()
+    hmm.viterbi_test()
