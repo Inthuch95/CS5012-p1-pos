@@ -2,6 +2,7 @@
 Created on 28 Feb 2018
 '''
 from hmm import HMM
+from tagger import pos_tagger
 from nltk.corpus import brown, conll2000, alpino, treebank
 import sys
 
@@ -33,6 +34,7 @@ def get_corpus(selected_corpus):
 if __name__ == '__main__':
     selected_corpus = int(sys.argv[1])
     smoothing = sys.argv[2]
-    corpus, tagset = get_corpus(selected_corpus=4)
-    hmm = HMM(corpus, tagset, smoothing="-g")
-    hmm.viterbi_test()
+    corpus, tagset = get_corpus(selected_corpus=1)
+    hmm = HMM(corpus, tagset, smoothing)
+    tagger = pos_tagger(hmm)
+    tagger.viterbi()
