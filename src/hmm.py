@@ -82,7 +82,8 @@ class HMM():
             transition_prob[key] = dict((tag,0) for tag in self.tags_dist) 
         for row in transition_prob.keys():
             for col in transition_prob[row].keys():
-                transition_prob[row][col] = (1.0 * transition_count[col][row] + 1) / (self.tags_dist[col] + len(self.tags))
+                transition_prob[row][col] = (1.0 * transition_count[col][row] + 1) / \
+                (self.tags_dist[col] + len(self.tags))
         return transition_prob
     
     def get_nc(self, c, linreg):
@@ -126,7 +127,8 @@ class HMM():
                     transition_prob[row][col] = (self.get_nc(1, linreg) * 1.0) / N
                 else:
                     c_star = (transition_count[row][col] + 1) * \
-                    (self.get_nc(transition_count[row][col] + 1, linreg)/self.get_nc(transition_count[row][col], linreg))
+                    (self.get_nc(transition_count[row][col] + 1, \
+                                 linreg)/self.get_nc(transition_count[row][col], linreg))
                     transition_prob[row][col] = c_star / N 
         return transition_prob
     

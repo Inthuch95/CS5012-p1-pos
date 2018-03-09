@@ -38,3 +38,10 @@ if __name__ == '__main__':
     hmm = HMM(corpus, tagset, smoothing)
     tagger = pos_tagger(hmm)
     tagger.viterbi()
+    for tag in tagger.accuracy_tag.keys():
+        result = "Tag: %4s \t Correct: %d / %d" % (tag, tagger.accuracy_tag[tag]["correct"], 
+                                                   tagger.accuracy_tag[tag]["all"])
+        print(result)
+    print("overall accuracy, correct: %d  from: %d percentage: %f \n" % \
+      (tagger.overall_accuracy["correct"], tagger.overall_accuracy["words"], tagger.overall_accuracy["percentage"]))
+    tagger.save_confusion_matrix()

@@ -3,7 +3,9 @@ Created on Mar 8, 2018
 
 @author: User
 '''
-from nltk import FreqDist 
+from nltk import FreqDist
+import csv 
+from sklearn.metrics.classification import confusion_matrix
 
 class pos_tagger():
     def __init__(self, hmm):
@@ -25,8 +27,12 @@ class pos_tagger():
         for tag in test_tags_dist.keys():
             accuracy_tag[tag] = {"correct":0, "all":0}
         
+        confusion_matrix = dict((tag,0) for tag in test_tags_dist.keys())
+        for key in confusion_matrix.keys():
+            confusion_matrix[key] = dict((tag,0) for tag in test_tags_dist.keys()) 
+        
         for test_sent in self.hmm.test_sents:
-            if num_sent % 10 == 0:
+            if num_sent % 50 == 0:
                 print("sentence processed: " + str(num_sent))
             actual_tags =  ["<s>"] + [t for (_,t) in test_tagged_sents[num_sent]] + ["</s>"]
             for i in range(len(test_sent)):
@@ -87,10 +93,24 @@ class pos_tagger():
                     if predictions[i] == actual_tags[i]:
                         accuracy_tag[actual_tags[i]]["correct"] += 1
                         correct_tags += 1
+                    if predictions[i] != 0:
+                        confusion_matrix[actual_tags[i]][predictions[i]] += 1 
                     num_words += 1
                     accuracy_tag[actual_tags[i]]["all"] += 1
-        for key in accuracy_tag.keys():
-            print(key, accuracy_tag[key])
-        print("overall accuracy, correct: %d  from: %d percentage: %f \n" % \
-              (correct_tags, num_words, float(correct_tags*100.0/num_words)))
+        accuracy = {"correct":correct_tags,
+                    "words":num_words,
+                    "percentage":float(correct_tags*100.0/num_words)}
+        print(accuracy)
+        self.predictions = predictions
+        self.actual_tags = actual_tags
+        self.overall_accuracy = accuracy
+        self.accuracy_tag = accuracy_tag
+        self.confusion_matrix = confusion_matrix
         
+    def save_confusion_matrix(self):
+        with open("../confusion_matrix.csv", "w") as f:
+            w = csv.writer( f )
+            tag_names = list(self.confusion_matrix.values())[0].keys()
+            w.writerow([""] + [key for key in list(self.confusion_matrix.values())[0].keys()])
+            for tag in self.confusion_matrix.keys():
+                w.writerow([tag] + [self.confusion_matrix[tag][tag_name] for tag_name in tag_names])    
