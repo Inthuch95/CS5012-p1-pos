@@ -12,32 +12,20 @@ class HMM():
     def __init__(self, corpus, tagset="", smoothing="-g"):
         self.corpus = corpus
         self.tagged_sents, self.sents = self.get_sentences(tagset)
-        # 90/10 train/test split
         self.train_size = int(len(self.tagged_sents) * 0.9)
         print("training hmm with " + str(self.train_size) + " sentences")
-#         self.test_size = int(len(self.tagged_sents) * 0.1)
-#         self.train_size = 5000
         self.test_size = 500
-#         print("creating list of words and tags")
         self.train_sents, self.test_sents = self.train_test_split()
         self.words, self.tags = self.get_words_and_tags()
-#         print(self.brown_tags_words[:10])
-        # tags and words distribution
-#         print("replacing unknown words with 'UNK'")
         self.change_unknown_words()
         self.tags_dist = FreqDist(self.tags)            
         self.words_dist = FreqDist(self.words)
-        # create tables
-#         print("creating transition probability table")
         if smoothing == "-l":
-#             print("applying laplace smoothing")
             self.transition_prob = self.create_transition_table()
         else:
-#             print("applying good-turing smoothing")
             self.transition_prob = self.good_turing_transition_table()
-#         print("creating emission probability table")
         self.emission_prob = self.create_emission_table()
-        print("hmm training completed")      
+        print("hmm training completed\n")      
     
     def get_sentences(self, selected_tagset):
         tagged_sents = self.corpus.tagged_sents(tagset=selected_tagset)
@@ -115,8 +103,6 @@ class HMM():
         y = [log10(Nc[key]) for key in Nc.keys()]
         linreg = LinearRegression()
         linreg.fit(x, y)
-        y_hat = linreg.predict(x)
-        print("MSE = ", mean_squared_error(y, y_hat))
         
         transition_prob = dict((tag,0) for tag in self.tags_dist)
         for key in transition_prob.keys():
